@@ -2,3 +2,5 @@
 .Rhistory
 .RData
 .Ruserdata
+differential_expression_analysis/edgeR/edgeR.Rproj
+differential_expression_analysis/edgeR/data/GSE193754_DE_results.Rdata
