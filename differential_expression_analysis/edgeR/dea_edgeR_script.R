@@ -5,7 +5,6 @@
 
 ##Loading libraries
 library(edgeR)
-library(biomaRt)
 library(ComplexHeatmap)
 library(circlize)
 library(openxlsx)
@@ -13,29 +12,28 @@ library(ggplot2)
 library(dplyr)
 library(tidyverse)
 library(FactoMineR)
-library(plotly)
 library(GEOquery)
 
-##reads expression
+##Reads expression
 expr1 <- read.table(file = "data/GSE193754_All_reads_counts.txt", header = TRUE, row.names = 1)
 expr<-expr1[,c("EJ_Cas9_1","EJ_Cas9_2","EJ_Cas9_3","EJ_KO_1","EJ_KO_2","EJ_KO_3")]
 
-##reading matrix (sample information)
+##Reading series matrix (sample information)
 gse<-getGEO(filename = "data/GSE193754_series_matrix.txt",GSEMatrix = TRUE, getGPL = FALSE)
 metadata <- pData(gse)
 meta <- metadata %>%
   select(c("title", "genotype:ch1")) %>%
   rename(sample_title = title, sample_type = "genotype:ch1") 
 
-##data cleaning, preparation and normalization
-#rearranges data and checks if order is identical betweenn expr data and metadata
+##Data cleaning, preparation and normalization
+#Rearranges data and checks if order is identical betweenn expr data and metadata
 rownames(meta) <- NULL
 meta <- meta %>%
   arrange(match(sample_title,c("EJ_Cas9_1", "EJ_Cas9_2", "EJ_Cas9_3", "EJ_KO_1", "EJ_KO_2", "EJ_KO_3"))) %>%
   column_to_rownames(var="sample_title")
 identical(colnames(expr),rownames(metadata_sub))
 
-#checks if expr data contain NAs
+#Checks if expr data contain NAs
 table(is.na(expr))
 
 #Determine factor (wild type vs hMSH2-deficient)
@@ -131,17 +129,53 @@ write.xlsx(top, file = "data/DE_Results_GSE193754_FDR_0_05_logFC_0_58.xlsx", row
 #Saving workspace
 save.image("data/GSE193754_DE_results.Rdata")
 
-#Annotating results wit biomart (from the 16786 genes)/ some genes maybe pseudogenes or some mutated genes need other database
-mart <- useEnsembl(biomart = 'ensembl',
-                   dataset = 'hsapiens_gene_ensembl',
-                   version = 108)
-annot <- getBM(filters = "external_gene_name",
-               attributes = c("ensembl_gene_id",
-                              "hgnc_symbol",
-                              "description",
-                              "start_position",
-                              "end_position",
-                              "strand",
-                              "external_gene_name"),
-               values = rownames(deg_lrt$table),
-               mart = mart)
+##Visualizing results
+#Adding significance level at the data frame
+res <- deg_lrt$table
+res <- res %>%
+  mutate(significance = case_when(
+    logFC >= 0.58 & fdr <= 0.05 ~ 'Up-regulated',
+    logFC <= -0.58 & fdr <= 0.05 ~ 'Down-regulated',
+    abs(logFC) < 0.58 | fdr > 0.05 ~ 'Not significant'))
+
+#Volcano plot (top right significant up-regulated, top left significant down-regulated)
+  volcano <- ggplot(data=res, 
+         aes(x=logFC, y=-log10(fdr),
+         color = significance,)) + 
+    geom_point() + 
+    geom_vline(xintercept=c(-0.58, 0.58), col="blue") +  #logFC threshold
+    geom_hline(yintercept=-log10(0.05), col="blue") + #fdr threshold
+    labs(x = 'LogFC', y = '-Log10(FDR)', color = 'Significance') +
+    scale_color_manual(values = c('blue', 'grey', 'red')) +
+    theme_minimal()
+    
+#Exporting plot
+pdf("Plots/Volcano_plot_GSE193754.pdf", height = 8, width = 8)
+print(volcano)
+dev.off()    
+
+#Heatmap  (We use the logCPM value) of the 34 differential expressed genes
+top_log_cpm <- log_cpm[rownames(top),]
+
+#Creating the heatmap
+heatmap <- Heatmap(top_log_cpm,
+        row_labels = rownames(top_log_cpm), 
+        row_names_gp = gpar(fontsize = 5), 
+        column_names_gp = gpar(fontsize = 7), 
+        heatmap_legend_param = list(title = "LogCPM\nexpression"), 
+        top_annotation = HeatmapAnnotation(Condition = meta$sample_type, 
+                                           which = 'column', 
+                                           col = list(Condition = c(
+                                                                    "wild type" = 'green',
+                                                                    "hMSH2-deficient" = 'red')
+                                           )        )        )
+
+#Exporting Heatmap
+pdf("Plots/Heatmap_GSE193754.pdf", height = 8, width = 8)
+print(heatmap)
+dev.off()
+
+#Session info
+sink(file = 'data/session_info_GSE193754_DE_analysis_edgeR.txt')
+sessionInfo()
+sink()
