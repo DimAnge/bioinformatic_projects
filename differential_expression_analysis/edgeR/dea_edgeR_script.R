@@ -26,12 +26,12 @@ meta <- metadata %>%
   rename(sample_title = title, sample_type = "genotype:ch1") 
 
 ##Data cleaning, preparation and normalization
-#Rearranges data and checks if order is identical betweenn expr data and metadata
+#Rearranges data and checks if order is identical between expr data and metadata
 rownames(meta) <- NULL
 meta <- meta %>%
   arrange(match(sample_title,c("EJ_Cas9_1", "EJ_Cas9_2", "EJ_Cas9_3", "EJ_KO_1", "EJ_KO_2", "EJ_KO_3"))) %>%
   column_to_rownames(var="sample_title")
-identical(colnames(expr),rownames(metadata_sub))
+identical(colnames(expr),rownames(meta))
 
 #Checks if expr data contain NAs
 table(is.na(expr))
