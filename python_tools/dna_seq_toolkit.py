@@ -2,13 +2,13 @@ import argparse
 
 #Reads Fasta File
 def read_file(file):
+    seq =''
     with open(file,'r') as f:
-        l = [l.strip() for l in f.readlines()]
-    if l[0].startswith('>') :
-        seq = l[1]
-        header = l[0][1:]
-    else:
-        seq = l[0]
+        for i in f.readlines():
+            if i.startswith('>'):
+                header = i.strip
+            else:
+                seq += i.strip()
     return validate_dna(seq)
 
 #Validates DNA Sequence
@@ -72,18 +72,38 @@ def translate(seq):
             protein += codon[rna[i:i+3]]
     return protein
     
-          
-
+#Checks for palindromes in the sequence (ex. restriction enzymes) and prints the palindrome and the position / window method        
+def palindrome(seq):
+    di_repl = {'A':'T','T':'A','C':'G', 'G':'C' }
+    found = []
+    for i in range(len(seq)):
+        for j in range(i,len(seq)):
+            array = seq[i:j+1]
+        
+            if  3 < len(array) < 13:
+                compl_array = array.translate(str.maketrans(di_repl))
+                compl_array = "".join(reversed(compl_array))
+                
+                if array == compl_array:
+                    pos = i+1
+                    
+                    if (pos, len(compl_array)) in found:
+                        continue
+                    
+                    else:
+                        found.append((pos,compl_array))
+    return found
 
 def main():
-    parser = argparse.ArgumentParser(description='DNA Sequence Toolkit')
+    parser = argparse.ArgumentParser(description='DNA Sequence Toolkit. This tool takes as input a DNA sequence in FASTA or txt format and performs various functions.')
     parser.add_argument('input', help='Input FASTA file')
-    parser.add_argument('-o', '--output', help='Output file to save results')
+    parser.add_argument('--output', help='Output file to save results')
     parser.add_argument('--gc', action='store_true', help='Calculate GC content')
     parser.add_argument('--rev_compl', action='store_true', help='Get reverse complement')
     parser.add_argument('--transcribe', action='store_true', help='Transcribe DNA to mRNA')
-    parser.add_argument('--translate', action='store_true', help='Translatet DNA to Amino Acid Sequence')
+    parser.add_argument('--translate', action='store_true', help='Translate DNA to amino acid sequence')
     parser.add_argument('--count', action='store_true', help='Transcribe DNA to mRNA')
+    parser.add_argument('--palindrome', action ='store_true', help='Checks for palindromes in the sequence (ex. restriction enzymes)')
     
     args = parser.parse_args()
     seq = read_file(args.input)
@@ -103,6 +123,10 @@ def main():
         
     if args.translate:
         res.append(f'Amino Acid Sequence: {translate(seq)}')
+        
+    if args.palindrome:
+        palindromes = "\n".join([f"{pal[0]}  {pal[1]}" for pal in palindrome(seq)])
+        res.append(f'Palindromes Found:\n {palindromes}')
         
     if args.output:
         with open(args.output, 'w') as out:
