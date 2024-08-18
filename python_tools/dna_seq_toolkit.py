@@ -1,9 +1,7 @@
 import argparse
 
-file = input('Type file path: ')
-
 #Reads Fasta File
-def read_file(file_path):
+def read_file(file):
     with open(file,'r') as f:
         l = [l.strip() for l in f.readlines()]
     if l[0].startswith('>') :
@@ -11,20 +9,20 @@ def read_file(file_path):
         header = l[0][1:]
     else:
         seq = l[0]
-    return seq
+    return validate_dna(seq)
 
 #Validates DNA Sequence
 def validate_dna(seq):
     dna_nucl = ['A','T','G','C','a','t','g','c']
     for i in seq:
         if i not in dna_nucl:
-            return 'Invalid Sequence. Please input a DNA sequence'
+            return 'Invalid Sequence. Please input a DNA sequence.\n'
         else:
             return seq.upper()
 
 #Calculates GC content
 def gc_content(seq):
-    return round(100*(seq.count('G') + seq.count('C')) / len(seq)) 
+    return round(100*(seq.count('G') + seq.count('C')) / len(seq),2) 
 
 #Reverse Complement Strand
 def reverse_compl(seq):
@@ -40,11 +38,82 @@ def nucl_freq(seq):
             di_nu[nucl] += 1
         else : 
             di_nu[nucl] = 1
-    return ', '.join([f'{nucl} : {count / len(seq):.2f}' for nucl, count in di_nu.items()])
+    l = f'Length = {len(seq)}'
+    return ', '.join([f'{nucl} : {count / len(seq):.2f}' for nucl, count in di_nu.items()]), l
 
 #Transcribe DNA to RNA
 def transcribe(seq):
     return seq.replace('T','U')
+
+#Translate DNA sequence to Protein sequence until it finds a stop codon (Add more genetic codes)
+def translate(seq):
+    codon = {'UUU': 'F',    'CUU': 'L',      'AUU': 'I'   ,  'GUU' :'V',
+'UUC' :'F'    ,   'CUC' :'L'   ,   'AUC' :'I'    ,  'GUC' :'V',
+'UUA': 'L'    ,   'CUA' :'L'   ,   'AUA' :'I'    ,  'GUA' :'V',
+'UUG' :'L'    ,   'CUG' :'L'   ,   'AUG' :'M'    ,  'GUG' :'V',
+'UCU' :'S'    ,   'CCU' :'P'   ,   'ACU' :'T'    ,  'GCU' :'A',
+'UCC' :'S'    ,   'CCC' :'P'   ,   'ACC' :'T'    ,  'GCC' :'A',
+'UCA' :'S'    ,   'CCA' :'P'   ,   'ACA' :'T'    ,  'GCA' :'A',
+'UCG' :'S'    ,   'CCG' :'P'   ,   'ACG' :'T'    ,  'GCG' :'A',
+'UAU' :'Y'    ,   'CAU' :'H'   ,   'AAU' :'N'    ,  'GAU' :'D',
+'UAC' :'Y'    ,   'CAC' :'H'   ,   'AAC' :'N'    ,  'GAC' :'D',
+'UAA' :'Stop' ,   'CAA' :'Q'   ,   'AAA' :'K'    ,  'GAA' :'E',
+'UAG' :'Stop' ,   'CAG' :'Q'   ,   'AAG' :'K'    ,  'GAG' :'E',
+'UGU' :'C'    ,   'CGU' :'R'   ,   'AGU' :'S'    ,  'GGU' :'G',
+'UGC' :'C'    ,   'CGC' :'R'   ,   'AGC' :'S'    ,  'GGC' :'G',
+'UGA' :'Stop' ,   'CGA' :'R'   ,   'AGA' :'R'    ,  'GGA' :'G',
+'UGG' :'W'    ,   'CGG' :'R'   ,   'AGG' :'R'    ,  'GGG' :'G' }
+    protein =''
+    rna = transcribe(seq)
+    for i in range(0, len(rna)-3, 3):
+        if i == 'Stop':
+            break
+        else:
+            protein += codon[rna[i:i+3]]
+    return protein
+    
           
-seq = validate_dna(read_file(file))
-print(nucl_freq(seq))   
+
+
+def main():
+    parser = argparse.ArgumentParser(description='DNA Sequence Toolkit')
+    parser.add_argument('input', help='Input FASTA file')
+    parser.add_argument('-o', '--output', help='Output file to save results')
+    parser.add_argument('--gc', action='store_true', help='Calculate GC content')
+    parser.add_argument('--rev_compl', action='store_true', help='Get reverse complement')
+    parser.add_argument('--transcribe', action='store_true', help='Transcribe DNA to mRNA')
+    parser.add_argument('--translate', action='store_true', help='Translatet DNA to Amino Acid Sequence')
+    parser.add_argument('--count', action='store_true', help='Transcribe DNA to mRNA')
+    
+    args = parser.parse_args()
+    seq = read_file(args.input)
+    res = []
+    
+    if args.count:
+        res.append(f'Nucleotide Frequency Count: {nucl_freq(seq)}')
+    
+    if args.gc:
+        res.append(f'GC Content : {gc_content(seq)}')
+        
+    if args.rev_compl:
+        res.append(f'Reverse Complement Strand: {reverse_compl(seq)}')
+    
+    if args.transcribe:
+        res.append(f'mRNA: {transcribe(seq)}')
+        
+    if args.translate:
+        res.append(f'Amino Acid Sequence: {translate(seq)}')
+        
+    if args.output:
+        with open(args.output, 'w') as out:
+            out.write('\n'.join(res))
+    
+    else:
+        for res in res:
+            print(res)    
+
+
+if __name__ == '__main__':
+    main()
+
+
