@@ -94,6 +94,42 @@ def palindrome(seq):
                         found.append((pos,compl_array))
     return found
 
+#Finds all open reading frames
+def orf_finder(seq):
+    start_codon = 'ATG'
+    end_codon = ['TAA','TAG','TGA']
+    orfs = []
+    dna = [(seq,'+'),(reverse_compl(seq),'-')]
+    for seq,strand in dna:
+        l = len(seq)
+        for i in range(l - 2):
+                temp = seq[i:i+3]
+                
+                if temp == start_codon:
+                    orf = ''
+                    found_stop = False
+            
+                    for j in range(i, l - 2, 3):
+                        codon = seq[j:j+3]
+                        
+                        if codon in end_codon:
+                            found_stop = True
+                            break
+                        orf += codon
+                    
+                    if found_stop:
+                        start_index = i + 1
+                        end_index = i + len(orf)
+                        if strand == '-':
+                            start_index = l - i - len(orf) +1
+                            end_index = l - i 
+                    
+                        orfs.append((end_index, start_index, strand, orf))
+        
+    return orfs
+
+
+#Main function/arg parser
 def main():
     parser = argparse.ArgumentParser(description='DNA Sequence Toolkit. This tool takes as input a DNA sequence in FASTA or txt format and performs various functions.')
     parser.add_argument('input', help='Input FASTA file')
@@ -104,6 +140,7 @@ def main():
     parser.add_argument('--translate', action='store_true', help='Translate DNA to amino acid sequence')
     parser.add_argument('--count', action='store_true', help='Transcribe DNA to mRNA')
     parser.add_argument('--palindrome', action ='store_true', help='Checks for palindromes in the sequence (ex. restriction enzymes)')
+    parser.add_argument('--orf_finder', action= 'store_true', help='Finds all possible Open Reading Frames (nested orfs) for both strands.')
     
     args = parser.parse_args()
     seq = read_file(args.input)
@@ -127,6 +164,12 @@ def main():
     if args.palindrome:
         palindromes = "\n".join([f"{pal[0]}  {pal[1]}" for pal in palindrome(seq)])
         res.append(f'Palindromes Found:\n {palindromes}')
+        
+    if args.orf_finder:
+        for item in orf_finder(seq):
+            head = "".join(f'>Found ORF of Length: {len(item[3])} |Strand: {item[2]} |Start: {item[0]} End: {item[1]} in original strand')
+            dna = item[3]
+            res.append(f'{head}\n{dna}')        
         
     if args.output:
         with open(args.output, 'w') as out:
