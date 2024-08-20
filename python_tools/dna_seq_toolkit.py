@@ -138,7 +138,7 @@ def main():
     parser.add_argument('--rev_compl', action='store_true', help='Get reverse complement')
     parser.add_argument('--transcribe', action='store_true', help='Transcribe DNA to mRNA')
     parser.add_argument('--translate', action='store_true', help='Translate DNA to amino acid sequence')
-    parser.add_argument('--count', action='store_true', help='Transcribe DNA to mRNA')
+    parser.add_argument('--count', action='store_true', help='Counts the frequency of each nucleotide')
     parser.add_argument('--palindrome', action ='store_true', help='Checks for palindromes in the sequence (ex. restriction enzymes)')
     parser.add_argument('--orf_finder', action= 'store_true', help='Finds all possible Open Reading Frames (nested orfs) for both strands.')
     
